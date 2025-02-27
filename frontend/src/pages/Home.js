@@ -18,10 +18,14 @@ const Home = () => {
       try {
         const vecinosRes = await getVecinos();
         const ordenesRes = await getOrdenes();
-        setVecinos(vecinosRes.data);
-        setOrdenes(ordenesRes.data);
+        // Asegurarse de que los datos sean arrays, incluso si la API falla
+        setVecinos(Array.isArray(vecinosRes.data) ? vecinosRes.data : []);
+        setOrdenes(Array.isArray(ordenesRes.data) ? ordenesRes.data : []);
       } catch (error) {
         console.error('Error fetching data:', error);
+        // En caso de error, establecer arrays vacíos
+        setVecinos([]);
+        setOrdenes([]);
       }
     };
     fetchData();
@@ -56,19 +60,33 @@ const Home = () => {
     }
   };
 
-  const filteredVecinos = vecinos.filter((vecino) =>
-    vecino.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vecino.direccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vecino.telefono.includes(searchTerm) ||
-    (vecino.delegacion && vecino.delegacion.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredVecinos = Array.isArray(vecinos) ? vecinos.filter(vecino => {
+    // Protección contra propiedades indefinidas
+    const nombre = vecino.nombre || '';
+    const direccion = vecino.direccion || '';
+    const telefono = vecino.telefono || '';
+    const delegacion = vecino.delegacion || '';
+    return (
+      nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      direccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      telefono.includes(searchTerm) ||
+      delegacion.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }) : [];
 
-  const filteredOrdenes = ordenes.filter((orden) =>
-    orden.numeroOrden.toString().includes(searchTerm) ||
-    orden.vecino.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    orden.vecino.direccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    orden.vecino.telefono.includes(searchTerm)
-  );
+  const filteredOrdenes = Array.isArray(ordenes) ? ordenes.filter((orden) => {
+    // Protección contra propiedades indefinidas
+    const numeroOrden = orden.numeroOrden ? orden.numeroOrden.toString() : '';
+    const vecinoNombre = orden.vecino && orden.vecino.nombre ? orden.vecino.nombre : '';
+    const vecinoDireccion = orden.vecino && orden.vecino.direccion ? orden.vecino.direccion : '';
+    const vecinoTelefono = orden.vecino && orden.vecino.telefono ? orden.vecino.telefono : '';
+    return (
+      numeroOrden.includes(searchTerm) ||
+      vecinoNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vecinoDireccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vecinoTelefono.includes(searchTerm)
+    );
+  }) : [];
 
   const ordenesPendientes = filteredOrdenes.filter((orden) => orden.estado !== 'completada');
   const ordenesCompletadas = filteredOrdenes.filter((orden) => orden.estado === 'completada');
@@ -106,9 +124,9 @@ const Home = () => {
           <TableBody>
             {filteredVecinos.map((vecino) => (
               <TableRow key={vecino._id}>
-                <TableCell>{vecino.nombre}</TableCell>
-                <TableCell>{vecino.direccion}</TableCell>
-                <TableCell>{vecino.telefono}</TableCell>
+                <TableCell>{vecino.nombre || 'Sin nombre'}</TableCell>
+                <TableCell>{vecino.direccion || 'Sin dirección'}</TableCell>
+                <TableCell>{vecino.telefono || 'Sin teléfono'}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => navigate(`/vecinos/${vecino._id}/editar`)}>
                     <Edit />
@@ -141,10 +159,10 @@ const Home = () => {
           <TableBody>
             {ordenesPendientes.map((orden) => (
               <TableRow key={orden._id}>
-                <TableCell>{orden.numeroOrden}</TableCell>
-                <TableCell>{orden.vecino.nombre}</TableCell>
-                <TableCell>{orden.tipoServicio}</TableCell>
-                <TableCell>{orden.estado}</TableCell>
+                <TableCell>{orden.numeroOrden || 'Sin número'}</TableCell>
+                <TableCell>{orden.vecino && orden.vecino.nombre ? orden.vecino.nombre : 'Sin vecino'}</TableCell>
+                <TableCell>{orden.tipoServicio || 'Sin servicio'}</TableCell>
+                <TableCell>{orden.estado || 'Sin estado'}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => navigate(`/ordenes/${orden._id}`)}>
                     <Visibility />
@@ -180,10 +198,10 @@ const Home = () => {
           <TableBody>
             {ordenesCompletadas.map((orden) => (
               <TableRow key={orden._id}>
-                <TableCell>{orden.numeroOrden}</TableCell>
-                <TableCell>{orden.vecino.nombre}</TableCell>
-                <TableCell>{orden.tipoServicio}</TableCell>
-                <TableCell>{orden.estado}</TableCell>
+                <TableCell>{orden.numeroOrden || 'Sin número'}</TableCell>
+                <TableCell>{orden.vecino && orden.vecino.nombre ? orden.vecino.nombre : 'Sin vecino'}</TableCell>
+                <TableCell>{orden.tipoServicio || 'Sin servicio'}</TableCell>
+                <TableCell>{orden.estado || 'Sin estado'}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => navigate(`/ordenes/${orden._id}`)}>
                     <Visibility />
