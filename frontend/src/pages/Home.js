@@ -93,6 +93,7 @@ const Home = () => {
 
   return (
     <Box sx={{ p: 4 }}>
+      <img src="/logo-san-isidro.png" alt="Logo San Isidro" style={{ width: '150px', marginBottom: '20px' }} />
       <Typography variant="h4" gutterBottom>Control de Vectores - San Isidro</Typography>
       <TextField
         label="Buscar (nombre, dirección, teléfono, delegación, número de orden)"
