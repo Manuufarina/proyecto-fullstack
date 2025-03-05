@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrdenById, addVisita } from '../services/api';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Importación corregida
+import autoTable from 'jspdf-autotable';
 import axios from 'axios';
 import {
   Button, Typography, Box, TextField, Card, CardContent, IconButton, Table, TableHead, TableRow, TableCell, TableBody
@@ -44,16 +44,24 @@ const DetalleOrden = ({ accessToken }) => {
         ...nuevaVisita,
         tecnicos: nuevaVisita.tecnicos.split(',').map((tecnico) => tecnico.trim()),
       };
+      
+      // Actualizar el estado y obtener el estado anterior
+      let prevVisitasLength;
+      setOrden((prevState) => {
+        prevVisitasLength = prevState.visitas.length; // Guardamos el valor para usarlo después
+        return {
+          ...prevState,
+          visitas: [...prevState.visitas, visitaData],
+        };
+      });
+
+      // Guardar la visita en la base de datos
       await addVisita(id, visitaData);
-      setOrden((prevOrden) => ({
-        ...prevOrden,
-        visitas: [...prevOrden.visitas, visitaData],
-      }));
 
       // Crear evento en Google Calendar
       if (accessToken) {
         const event = {
-          summary: `Visita #${prevOrden.visitas.length + 1} - Orden #${orden.numeroOrden}`,
+          summary: `Visita #${prevVisitasLength + 1} - Orden #${orden.numeroOrden}`,
           description: `Observaciones: ${visitaData.observaciones}\nProducto: ${visitaData.cantidadProducto} ${visitaData.tipoProducto}\nTécnicos: ${visitaData.tecnicos.join(', ')}`,
           start: {
             dateTime: new Date(visitaData.fecha).toISOString(),
@@ -91,7 +99,7 @@ const DetalleOrden = ({ accessToken }) => {
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    autoTable(doc, { // Usar autoTable directamente
+    autoTable(doc, {
       startY: 135,
       head: [['FECHA', 'DETALLE', 'ESTADO', 'PRODUCTO Y DOSIS', 'RESPONSABLE']],
       body: orden.visitas.map((visita, index) => [
