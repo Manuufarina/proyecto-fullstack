@@ -9,9 +9,10 @@ const NuevoVecino = () => {
   const handleSubmit = async (data) => {
     try {
       await createVecino(data);
-      navigate('/');
+      navigate('/'); // Redirige a Home después de guardar
     } catch (error) {
       console.error('Error creating vecino:', error);
+      alert('Hubo un error al guardar el vecino. Revisa la consola.');
     }
   };
 

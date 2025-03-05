@@ -13,18 +13,24 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
+  // Función para cargar datos
+  const fetchData = async () => {
+    try {
+      const vecinosRes = await getVecinos();
+      const ordenesRes = await getOrdenes();
+      console.log('Datos de vecinos recibidos:', vecinosRes.data); // Depuración
+      console.log('Datos de órdenes recibidos:', ordenesRes.data); // Depuración
+      setVecinos(Array.isArray(vecinosRes.data) ? vecinosRes.data : []);
+      setOrdenes(Array.isArray(ordenesRes.data) ? ordenesRes.data : []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setVecinos([]); // En caso de error, mantener array vacío
+      setOrdenes([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const vecinosRes = await getVecinos();
-        const ordenesRes = await getOrdenes();
-        setVecinos(vecinosRes.data);
-        setOrdenes(ordenesRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    fetchData();
+    fetchData(); // Cargar datos al montar el componente
   }, []);
 
   const handleDeleteVecino = async (id) => {
