@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Card, CardContent, Typography } from '@mui/material';
+import { TextField, Button, Select, MenuItem, FormControl, InputLabel, Card, CardContent, Typography, Box } from '@mui/material';
 
 const tiposServicio = [
   'Desratización', 'Retiro de Panal', 'Desinsectación general', 'Desinfección',
@@ -11,6 +11,7 @@ const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
     vecino: initialData.vecino?._id || '',
     tipoServicio: initialData.tipoServicio || '',
     otroServicio: '',
+    numeroRecibo: initialData.numeroRecibo || '', // Nuevo campo
   });
 
   const handleChange = (e) => {
@@ -23,8 +24,13 @@ const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
     const data = {
       vecino: formData.vecino,
       tipoServicio: formData.tipoServicio === 'Otro' ? formData.otroServicio : formData.tipoServicio,
+      numeroRecibo: formData.numeroRecibo, // Incluye el número de recibo
     };
     onSubmit(data);
+  };
+
+  const handleGenerarBoleta = () => {
+    window.open('https://boletadepago.gestionmsi.gob.ar/siste', '_blank');
   };
 
   return (
@@ -61,6 +67,23 @@ const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
               sx={{ mb: 2 }}
             />
           )}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <TextField
+              label="Número de Recibo"
+              name="numeroRecibo"
+              value={formData.numeroRecibo}
+              onChange={handleChange}
+              fullWidth
+              sx={{ mr: 2 }}
+            />
+            <Button
+              variant="outlined"
+              onClick={handleGenerarBoleta}
+              sx={{ height: '56px' }}
+            >
+              Generar Boleta
+            </Button>
+          </Box>
           <Button type="submit" variant="contained" fullWidth>
             Guardar
           </Button>
