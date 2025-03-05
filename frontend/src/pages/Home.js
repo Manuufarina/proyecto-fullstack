@@ -7,8 +7,12 @@ import {
 import { Add, Edit, Delete, Visibility, CheckCircle, Route } from '@mui/icons-material';
 import { getVecinos, getOrdenes, deleteVecino, deleteOrden, completarOrden } from '../services/api';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // Importamos autoTable
 import axios from 'axios';
+
+// Aplicamos autoTable a jsPDF
+const JSPDF = jsPDF.JSPDF;
+JSPDF.API.autoTable = autoTable;
 
 const Home = ({ accessToken }) => {
   const [vecinos, setVecinos] = useState([]);
@@ -176,6 +180,7 @@ const Home = ({ accessToken }) => {
       orden.horarioEspecifico || 'Sin horario específico'
     ]);
 
+    // Usamos doc.autoTable con la integración correcta
     doc.autoTable({
       startY: 30,
       head: [['#', 'Nº Orden', 'Vecino', 'Dirección', 'Servicio', 'Horario']],
