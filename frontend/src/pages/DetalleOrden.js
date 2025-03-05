@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrdenById, addVisita } from '../services/api';
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
-  Button, Typography, Box, TextField, Card, CardContent, IconButton, List, ListItem, ListItemText
+  Button, Typography, Box, TextField, Card, CardContent, IconButton, List, ListItem, ListItemText,
+  Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import { ArrowBack, Download } from '@mui/icons-material';
 
@@ -61,19 +63,84 @@ const DetalleOrden = () => {
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    doc.text(`Orden de Trabajo #${orden.numeroOrden}`, 10, 10);
-    doc.text(`Vecino: ${orden.vecino.nombre}`, 10, 20);
-    doc.text(`Dirección: ${orden.vecino.direccion}`, 10, 30);
-    doc.text(`Tipo de Servicio: ${orden.tipoServicio}`, 10, 40);
-    doc.text(`Estado: ${orden.estado}`, 10, 50);
-    doc.text('Visitas:', 10, 60);
-    orden.visitas.forEach((visita, index) => {
-      doc.text(`Visita ${index + 1}:`, 10, 70 + index * 40);
-      doc.text(`Fecha: ${new Date(visita.fecha).toLocaleDateString()}`, 20, 80 + index * 40);
-      doc.text(`Observaciones: ${visita.observaciones}`, 20, 90 + index * 40);
-      doc.text(`Producto: ${visita.cantidadProducto} ${visita.tipoProducto}`, 20, 100 + index * 40);
-      doc.text(`Técnicos: ${visita.tecnicos.join(', ')}`, 20, 110 + index * 40);
+
+    // Encabezado
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DIRECCIÓN DE CONTROL DE VECTORES', 10, 10);
+    doc.text('ORDEN DE TRABAJO', 160, 10, { align: 'right' });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AV. FONDO DE LA LEGUA 240, MARTINEZ', 10, 20);
+    doc.text('4513-7828 / 11-3151-2985', 10, 25);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nº: ${String(orden.numeroOrden).padStart(5, '0')}-`, 160, 20, { align: 'right' });
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 160, 25, { align: 'right' });
+
+    // Logo (requiere convertir a base64 o usar un enlace, aquí lo omitimos por simplicidad)
+    // Si tienes el logo en base64, puedes usar doc.addImage(base64, 'PNG', 180, 10, 20, 20);
+
+    // Línea divisoria
+    doc.setLineWidth(0.5);
+    doc.line(10, 30, 200, 30);
+
+    // Datos principales
+    doc.setFontSize(10);
+    doc.text('PAGO Y SELLO:', 10, 40);
+    doc.text('SOLICITANTE:', 10, 50);
+    doc.text(`${orden.vecino.nombre}`, 40, 50);
+    doc.text('TEL:', 10, 60);
+    doc.text(`${orden.vecino.telefono}`, 40, 60);
+    doc.text('RECEPCIÓN:', 10, 70);
+    doc.text('DIRECCIÓN:', 10, 80);
+    doc.text(`${orden.vecino.direccion}`, 40, 80);
+    doc.text('LOCALIDAD/BARRIO:', 10, 90);
+    doc.text(`${orden.vecino.barrio}`, 40, 90);
+    doc.text('TIPO DE PLAGA:', 10, 100);
+    doc.text(`${orden.tipoServicio}`, 40, 100);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('ROEDOR:', 10, 110);
+    doc.text('DESINSEC:', 40, 110);
+    doc.text('DESINFEC:', 70, 110);
+    doc.text('OBSERVACIONES:', 10, 120);
+
+    // Línea divisoria
+    doc.setLineWidth(0.5);
+    doc.line(10, 125, 200, 125);
+
+    // Título de seguimiento
+    doc.setFontSize(12);
+    doc.text('SEGUIMIENTO DE TAREAS REALIZADAS:', 10, 130);
+
+    // Tabla de visitas
+    const tableData = orden.visitas.map((visita, index) => [
+      new Date(visita.fecha).toLocaleDateString('es-AR'),
+      visita.observaciones || 'Sin detalle',
+      visita.estado || 'INSPECCIÓN',
+      `${visita.cantidadProducto} ${visita.tipoProducto}`,
+      visita.tecnicos.join(', ')
+    ]);
+
+    doc.autoTable({
+      startY: 135,
+      head: [['FECHA', 'DETALLE', 'ESTADO', 'PRODUCTO Y DOSIS', 'RESPONSABLE']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [100, 100, 100] },
+      styles: { fontSize: 8 }
     });
+
+    // Pie de página
+    const finalY = doc.lastAutoTable.finalY || 135;
+    doc.setFontSize(10);
+    doc.text('PASADO A SISTEMA: SÍ - NO', 10, finalY + 10);
+    doc.text('PASADO AL MAPA: SÍ - NO', 60, finalY + 10);
+    doc.text('SUPERVISOR:', 140, finalY + 10);
+
     doc.save(`orden_${orden.numeroOrden}.pdf`);
   };
 
@@ -107,26 +174,28 @@ const DetalleOrden = () => {
       <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
         Visitas
       </Typography>
-      <List>
-        {orden.visitas.map((visita, index) => (
-          <ListItem key={index}>
-            <Card sx={{ width: '100%' }}>
-              <CardContent>
-                <ListItemText
-                  primary={`Fecha: ${new Date(visita.fecha).toLocaleDateString()}`}
-                  secondary={
-                    <>
-                      <Typography>Observaciones: {visita.observaciones}</Typography>
-                      <Typography>Cantidad: {visita.cantidadProducto} {visita.tipoProducto}</Typography>
-                      <Typography>Técnicos: {visita.tecnicos.join(', ')}</Typography>
-                    </>
-                  }
-                />
-              </CardContent>
-            </Card>
-          </ListItem>
-        ))}
-      </List>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Fecha</TableCell>
+            <TableCell>Observaciones</TableCell>
+            <TableCell>Cantidad de Producto</TableCell>
+            <TableCell>Tipo de Producto</TableCell>
+            <TableCell>Técnicos</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {orden.visitas.map((visita, index) => (
+            <TableRow key={index}>
+              <TableCell>{new Date(visita.fecha).toLocaleDateString()}</TableCell>
+              <TableCell>{visita.observaciones}</TableCell>
+              <TableCell>{visita.cantidadProducto}</TableCell>
+              <TableCell>{visita.tipoProducto}</TableCell>
+              <TableCell>{visita.tecnicos.join(', ')}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {orden.estado !== 'completada' && (
         <Card sx={{ maxWidth: 500, mt: 4 }}>
