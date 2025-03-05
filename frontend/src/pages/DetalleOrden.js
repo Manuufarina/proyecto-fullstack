@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrdenById, addVisita } from '../services/api';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // Importación corregida
+import axios from 'axios';
 import {
-  Button, Typography, Box, TextField, Card, CardContent, IconButton, List, ListItem, ListItemText,
-  Table, TableHead, TableRow, TableCell, TableBody
+  Button, Typography, Box, TextField, Card, CardContent, IconButton, Table, TableHead, TableRow, TableCell, TableBody
 } from '@mui/material';
 import { ArrowBack, Download } from '@mui/icons-material';
 
-const DetalleOrden = () => {
+const DetalleOrden = ({ accessToken }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [orden, setOrden] = useState(null);
@@ -49,6 +49,34 @@ const DetalleOrden = () => {
         ...prevOrden,
         visitas: [...prevOrden.visitas, visitaData],
       }));
+
+      // Crear evento en Google Calendar
+      if (accessToken) {
+        const event = {
+          summary: `Visita #${prevOrden.visitas.length + 1} - Orden #${orden.numeroOrden}`,
+          description: `Observaciones: ${visitaData.observaciones}\nProducto: ${visitaData.cantidadProducto} ${visitaData.tipoProducto}\nTécnicos: ${visitaData.tecnicos.join(', ')}`,
+          start: {
+            dateTime: new Date(visitaData.fecha).toISOString(),
+            timeZone: 'America/Argentina/Buenos_Aires',
+          },
+          end: {
+            dateTime: new Date(new Date(visitaData.fecha).getTime() + 60 * 60 * 1000).toISOString(), // 1 hora después
+            timeZone: 'America/Argentina/Buenos_Aires',
+          },
+        };
+
+        await axios.post(
+          'https://www.googleapis.com/calendar/v3/calendars/vectores2023msi@gmail.com/events',
+          event,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
       setNuevaVisita({
         fecha: '',
         observaciones: '',
@@ -57,12 +85,26 @@ const DetalleOrden = () => {
         tecnicos: '',
       });
     } catch (error) {
-      console.error('Error adding visita:', error);
+      console.error('Error adding visita or creating calendar event:', error);
     }
   };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
+    autoTable(doc, { // Usar autoTable directamente
+      startY: 135,
+      head: [['FECHA', 'DETALLE', 'ESTADO', 'PRODUCTO Y DOSIS', 'RESPONSABLE']],
+      body: orden.visitas.map((visita, index) => [
+        new Date(visita.fecha).toLocaleDateString('es-AR'),
+        visita.observaciones || 'Sin detalle',
+        visita.estado || 'INSPECCIÓN',
+        `${visita.cantidadProducto} ${visita.tipoProducto}`,
+        visita.tecnicos.join(', ')
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [100, 100, 100] },
+      styles: { fontSize: 8 }
+    });
 
     // Encabezado
     doc.setFontSize(14);
@@ -79,9 +121,6 @@ const DetalleOrden = () => {
     doc.setFont('helvetica', 'bold');
     doc.text(`Nº: ${String(orden.numeroOrden).padStart(5, '0')}-`, 160, 20, { align: 'right' });
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 160, 25, { align: 'right' });
-
-    // Logo (requiere convertir a base64 o usar un enlace, aquí lo omitimos por simplicidad)
-    // Si tienes el logo en base64, puedes usar doc.addImage(base64, 'PNG', 180, 10, 20, 20);
 
     // Línea divisoria
     doc.setLineWidth(0.5);
@@ -115,24 +154,6 @@ const DetalleOrden = () => {
     // Título de seguimiento
     doc.setFontSize(12);
     doc.text('SEGUIMIENTO DE TAREAS REALIZADAS:', 10, 130);
-
-    // Tabla de visitas
-    const tableData = orden.visitas.map((visita, index) => [
-      new Date(visita.fecha).toLocaleDateString('es-AR'),
-      visita.observaciones || 'Sin detalle',
-      visita.estado || 'INSPECCIÓN',
-      `${visita.cantidadProducto} ${visita.tipoProducto}`,
-      visita.tecnicos.join(', ')
-    ]);
-
-    doc.autoTable({
-      startY: 135,
-      head: [['FECHA', 'DETALLE', 'ESTADO', 'PRODUCTO Y DOSIS', 'RESPONSABLE']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [100, 100, 100] },
-      styles: { fontSize: 8 }
-    });
 
     // Pie de página
     const finalY = doc.lastAutoTable.finalY || 135;
