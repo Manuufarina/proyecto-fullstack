@@ -88,40 +88,58 @@ const Home = ({ accessToken }) => {
       try {
         const response = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json`, {
           params: {
-            address: orden.vecino.direccion,
+            address: `${orden.vecino.direccion}, San Isidro, Buenos Aires, Argentina`,
             key: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
           },
         });
-        const location = response.data.results[0]?.geometry.location;
+        console.log(`Respuesta de geocodificación para ${orden.vecino.direccion}:`, response.data);
+        if (response.data.status !== 'OK' || !response.data.results[0]) {
+          throw new Error(`No se encontraron coordenadas para ${orden.vecino.direccion}`);
+        }
+        const location = response.data.results[0].geometry.location;
         return {
           ...orden,
-          lat: location?.lat || 0,
-          lng: location?.lng || 0,
+          lat: location.lat,
+          lng: location.lng,
         };
       } catch (error) {
-        console.error('Error fetching coordinates:', error);
-        return { ...orden, lat: 0, lng: 0 };
+        console.error(`Error fetching coordinates for ${orden.vecino.direccion}:`, error.message);
+        return { ...orden, lat: -34.483663, lng: -58.503339 }; // Usar punto inicial si falla
       }
     }));
 
+    // Verificar si hay coordenadas válidas
+    if (ordenesConCoordenadas.every(orden => orden.lat === -34.483663 && orden.lng === -58.503339)) {
+      alert('No se pudieron obtener coordenadas válidas para las direcciones. Por favor, verifica las direcciones.');
+      return;
+    }
+
     // Algoritmo Nearest Neighbor para optimizar la ruta
-    const start = { lat: -34.483663, lng: -58.503339 }; // Centro de San Isidro como punto inicial
+    const start = { lat: -34.483663, lng: -58.503339 }; // Av. Fondo de la Legua 240, Martínez, San Isidro
     let currentPoint = start;
     const optimizedOrdenes = [];
     const remainingOrdenes = [...ordenesConCoordenadas];
 
+    // Primero, manejar órdenes con horario específico
+    const ordenesConHorario = remainingOrdenes.filter(orden => orden.horarioEspecifico);
+    const ordenesSinHorario = remainingOrdenes.filter(orden => !orden.horarioEspecifico);
+
+    // Ordenar órdenes con horario específico por hora
+    ordenesConHorario.sort((a, b) => {
+      const horaA = a.horarioEspecifico.split(':').map(Number);
+      const horaB = b.horarioEspecifico.split(':').map(Number);
+      return (horaA[0] * 60 + horaA[1]) - (horaB[0] * 60 + horaB[1]);
+    });
+
+    optimizedOrdenes.push(...ordenesConHorario);
+    remainingOrdenes.splice(0, remainingOrdenes.length, ...ordenesSinHorario);
+
+    // Optimizar las órdenes sin horario usando Nearest Neighbor
     while (remainingOrdenes.length > 0) {
       let closest = null;
       let closestDistance = Infinity;
 
       for (const orden of remainingOrdenes) {
-        // Si tiene horario específico, priorízalo
-        if (orden.horarioEspecifico) {
-          optimizedOrdenes.push(orden);
-          remainingOrdenes.splice(remainingOrdenes.indexOf(orden), 1);
-          continue;
-        }
-
         const distance = Math.sqrt(
           Math.pow(orden.lat - currentPoint.lat, 2) +
           Math.pow(orden.lng - currentPoint.lng, 2)
@@ -146,7 +164,8 @@ const Home = ({ accessToken }) => {
     doc.setFont('helvetica', 'bold');
     doc.text('RUTINA DE TRABAJO', 10, 10);
     doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 10, 20);
+    doc.text(`Inicio: Av. Fondo de la Legua 240, Martínez, San Isidro`, 10, 20);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 10, 25);
 
     const tableData = optimizedOrdenes.map((orden, index) => [
       index + 1,
@@ -252,14 +271,22 @@ const Home = ({ accessToken }) => {
       </Paper>
 
       <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>Órdenes Pendientes o En Curso</Typography>
-      <Button
-        variant="contained"
-        startIcon={<Route />}
-        onClick={optimizeRoute}
-        sx={{ mb: 2 }}
-      >
-        Crear Rutina de Trabajo
-      </Button>
+      <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<Route />}
+          onClick={optimizeRoute}
+        >
+          Crear Rutina de Trabajo
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => navigate('/ordenes/nueva')}
+        >
+          Nueva Orden de Trabajo
+        </Button>
+      </Box>
       <Paper>
         <Table>
           <TableHead>
