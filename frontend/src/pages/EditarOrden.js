@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import OrdenTrabajoForm from '../components/OrdenTrabajoForm';
 import { getOrdenById, updateOrden, getVecinos } from '../services/api';
+import OrdenTrabajoForm from '../components/OrdenTrabajoForm';
 
 const EditarOrden = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [orden, setOrden] = useState(null);
+  const [initialData, setInitialData] = useState(null);
   const [vecinos, setVecinos] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const ordenRes = await getOrdenById(id);
-        const vecinosRes = await getVecinos();
-        setOrden(ordenRes.data);
-        setVecinos(vecinosRes.data);
+        const ordenResponse = await getOrdenById(id);
+        const vecinosResponse = await getVecinos();
+        setInitialData(ordenResponse.data);
+        setVecinos(vecinosResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -26,15 +26,21 @@ const EditarOrden = () => {
   const handleSubmit = async (data) => {
     try {
       await updateOrden(id, data);
-      navigate('/');
+      navigate(`/ordenes/${id}`);
     } catch (error) {
       console.error('Error updating orden:', error);
     }
   };
 
-  if (!orden || !vecinos.length) return <div>Cargando...</div>;
+  if (!initialData) return <div>Cargando...</div>;
 
-  return <OrdenTrabajoForm onSubmit={handleSubmit} initialData={orden} vecinos={vecinos} />;
+  return (
+    <OrdenTrabajoForm
+      onSubmit={handleSubmit}
+      initialData={initialData}
+      vecinos={vecinos}
+    />
+  );
 };
 
 export default EditarOrden;

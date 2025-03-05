@@ -1,14 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getVecinos, createOrden } from '../services/api';
 import OrdenTrabajoForm from '../components/OrdenTrabajoForm';
-import { createOrden, getVecinos } from '../services/api';
 
-const NuevaOrden = () => {
+const NuevaOrden = ({ accessToken }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [vecinos, setVecinos] = useState([]);
-  const queryParams = new URLSearchParams(location.search);
-  const vecinoId = queryParams.get('vecino');
 
   useEffect(() => {
     const fetchVecinos = async () => {
@@ -22,7 +19,7 @@ const NuevaOrden = () => {
     fetchVecinos();
   }, []);
 
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (data, token) => {
     try {
       await createOrden(data);
       navigate('/');
@@ -35,7 +32,7 @@ const NuevaOrden = () => {
     <OrdenTrabajoForm
       onSubmit={handleSubmit}
       vecinos={vecinos}
-      initialData={{ vecino: vecinoId }}
+      accessToken={accessToken}
     />
   );
 };

@@ -6,12 +6,13 @@ const tiposServicio = [
   'Fumigación por mosquitos', 'Alacranes', 'Otro'
 ];
 
-const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
+const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos, accessToken }) => {
   const [formData, setFormData] = useState({
     vecino: initialData.vecino?._id || '',
     tipoServicio: initialData.tipoServicio || '',
     otroServicio: '',
-    numeroRecibo: initialData.numeroRecibo || '', // Nuevo campo
+    numeroRecibo: initialData.numeroRecibo || '',
+    horarioEspecifico: initialData.horarioEspecifico || '', // Nuevo campo
   });
 
   const handleChange = (e) => {
@@ -24,9 +25,10 @@ const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
     const data = {
       vecino: formData.vecino,
       tipoServicio: formData.tipoServicio === 'Otro' ? formData.otroServicio : formData.tipoServicio,
-      numeroRecibo: formData.numeroRecibo, // Incluye el número de recibo
+      numeroRecibo: formData.numeroRecibo,
+      horarioEspecifico: formData.horarioEspecifico,
     };
-    onSubmit(data);
+    onSubmit(data, accessToken);
   };
 
   const handleGenerarBoleta = () => {
@@ -84,6 +86,14 @@ const OrdenTrabajoForm = ({ onSubmit, initialData = {}, vecinos }) => {
               Generar Boleta
             </Button>
           </Box>
+          <TextField
+            label="Horario Específico (ej. 14:00)"
+            name="horarioEspecifico"
+            value={formData.horarioEspecifico}
+            onChange={handleChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
           <Button type="submit" variant="contained" fullWidth>
             Guardar
           </Button>
